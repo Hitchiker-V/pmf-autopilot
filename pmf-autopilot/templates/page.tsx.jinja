@@ -1,0 +1,104 @@
+'use client';
+
+import { useState } from 'react';
+
+export default function Home() {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const emailInput = (document.getElementById('email') as HTMLInputElement).value.trim();
+    if (!emailInput) return;
+
+    setStatus('loading');
+
+    try {
+      const response = await fetch('https://{{ supabase_url }}/functions/v1/capture-signal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer {{ anon_key }}'
+        },
+        body: JSON.stringify({
+          experiment_id: "{{ experiment_id }}",
+          signal_type: "email_signup",
+          value: emailInput,
+          raw_data: { source: "landing_page" }
+        })
+      });
+
+      if (response.ok) {
+        setStatus('success');
+      } else {
+        setStatus('error');
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus('error');
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-zinc-950 text-white">
+      {/* HERO */}
+      <div className="max-w-4xl mx-auto text-center pt-20 px-6">
+        <h1 className="text-6xl font-bold tracking-tighter mb-6">{{ hero.headline | safe }}</h1>
+        <p className="text-2xl text-zinc-400 mb-10">{{ hero.subheadline | safe }}</p>
+        
+        <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-4">
+          <input 
+            type="email" 
+            id="email" 
+            placeholder="your@email.com" 
+            required 
+            className="w-full px-8 py-5 bg-zinc-900 border border-zinc-700 rounded-3xl text-xl focus:outline-none focus:border-white"
+          />
+          <button 
+            type="submit"
+            disabled={status === 'loading'}
+            className="w-full bg-white hover:bg-zinc-100 text-black py-5 px-8 rounded-3xl font-semibold text-2xl transition disabled:opacity-70"
+          >
+            {status === 'loading' ? 'Submitting...' : 
+             status === 'success' ? '✅ Success!' : 
+             '{{ hero.cta_text | safe }}'}
+          </button>
+        </form>
+        <p className="text-xs text-zinc-500 mt-6">{{ final_cta.price_hint | safe }}</p>
+      </div>
+
+      {/* PROBLEM SECTION */}
+      <div className="max-w-4xl mx-auto px-6 py-20">
+        <h2 className="text-4xl font-bold text-center mb-12">{{ problem_section.title | safe }}</h2>
+        <div className="grid md:grid-cols-2 gap-8">
+          {% for bullet in problem_section.bullets %}
+          <div className="bg-zinc-900 p-8 rounded-3xl">
+            {% if bullet is mapping %}{{ bullet.text or bullet.title or bullet | string | safe }}{% else %}{{ bullet | safe }}{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {/* SOLUTION SECTION */}
+      <div className="bg-zinc-900 py-20">
+        <div className="max-w-4xl mx-auto px-6">
+          <h2 className="text-4xl font-bold text-center mb-8">{{ solution_section.title | safe }}</h2>
+          <p className="text-xl text-zinc-400 text-center max-w-2xl mx-auto mb-12">{{ solution_section.description | safe }}</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for feature in solution_section.features %}
+            <div className="bg-zinc-950 p-8 rounded-3xl">
+              {% if feature is mapping %}
+              {% if feature.title %}<p className="font-semibold mb-2">{{ feature.title | safe }}</p>{% endif %}
+              {% if feature.description %}<p className="text-zinc-400 text-sm">{{ feature.description | safe }}</p>{% endif %}
+              {% else %}{{ feature | safe }}{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div className="text-center py-12 text-zinc-500 text-sm">
+        Powered by PMF Autopilot • Experiment #{{ experiment_id }}
+      </div>
+    </main>
+  );
+}
